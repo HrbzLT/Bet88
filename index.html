@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Simple Library System</title>
+    <title>Library System with Borrower Information</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,7 +15,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: auto;
             background: white;
             padding: 20px;
@@ -25,6 +25,13 @@
         input, button {
             padding: 8px;
             margin: 5px 0;
+            width: 100%;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
         }
 
         button {
@@ -41,6 +48,7 @@
             border: 1px solid #ddd;
             padding: 10px;
             text-align: center;
+            font-size: 14px;
         }
 
         th {
@@ -65,11 +73,21 @@
     <h1>📚 Library System</h1>
 
     <h3>Add Book</h3>
-    <input type="text" id="title" placeholder="Book Title">
-    <input type="text" id="author" placeholder="Author">
-    <button onclick="addBook()">Add Book</button>
+    <div class="row">
+        <input type="text" id="title" placeholder="Book Title">
+        <input type="text" id="author" placeholder="Author">
+        <button onclick="addBook()">Add Book</button>
+    </div>
 
-    <h3>Search</h3>
+    <h3>Borrower Information (Fill when borrowing)</h3>
+    <div class="row">
+        <input type="text" id="lrn" placeholder="LRN">
+        <input type="text" id="borrowerName" placeholder="Name">
+        <input type="text" id="libraryId" placeholder="Library ID">
+        <input type="text" id="purpose" placeholder="Purpose of Borrow">
+    </div>
+
+    <h3>Search Book</h3>
     <input type="text" id="search" placeholder="Search by title..." onkeyup="displayBooks()">
 
     <table>
@@ -78,6 +96,7 @@
                 <th>Title</th>
                 <th>Author</th>
                 <th>Status</th>
+                <th>Borrower Info</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -97,14 +116,15 @@
         let author = document.getElementById("author").value.trim();
 
         if (title === "" || author === "") {
-            alert("Please fill in all fields.");
+            alert("Please fill in all book fields.");
             return;
         }
 
         books.push({
             title: title,
             author: author,
-            borrowed: false
+            borrowed: false,
+            borrower: null
         });
 
         saveBooks();
@@ -114,8 +134,39 @@
         document.getElementById("author").value = "";
     }
 
-    function toggleBorrow(index) {
-        books[index].borrowed = !books[index].borrowed;
+    function borrowBook(index) {
+        let lrn = document.getElementById("lrn").value.trim();
+        let name = document.getElementById("borrowerName").value.trim();
+        let libraryId = document.getElementById("libraryId").value.trim();
+        let purpose = document.getElementById("purpose").value.trim();
+
+        if (lrn === "" || name === "" || libraryId === "" || purpose === "") {
+            alert("Please complete all borrower information.");
+            return;
+        }
+
+        books[index].borrowed = true;
+        books[index].borrower = {
+            lrn: lrn,
+            name: name,
+            libraryId: libraryId,
+            purpose: purpose,
+            date: new Date().toLocaleString()
+        };
+
+        saveBooks();
+        displayBooks();
+
+        document.getElementById("lrn").value = "";
+        document.getElementById("borrowerName").value = "";
+        document.getElementById("libraryId").value = "";
+        document.getElementById("purpose").value = "";
+    }
+
+    function returnBook(index) {
+        books[index].borrowed = false;
+        books[index].borrower = null;
+
         saveBooks();
         displayBooks();
     }
@@ -127,6 +178,14 @@
 
         books.forEach((book, index) => {
             if (book.title.toLowerCase().includes(search)) {
+                let borrowerInfo = book.borrower
+                    ? `LRN: ${book.borrower.lrn}<br>
+                       Name: ${book.borrower.name}<br>
+                       ID: ${book.borrower.libraryId}<br>
+                       Purpose: ${book.borrower.purpose}<br>
+                       Date: ${book.borrower.date}`
+                    : "—";
+
                 list.innerHTML += `
                     <tr>
                         <td>${book.title}</td>
@@ -134,10 +193,11 @@
                         <td class="${book.borrowed ? 'borrowed' : 'available'}">
                             ${book.borrowed ? "Borrowed" : "Available"}
                         </td>
+                        <td>${borrowerInfo}</td>
                         <td>
-                            <button onclick="toggleBorrow(${index})">
-                                ${book.borrowed ? "Return" : "Borrow"}
-                            </button>
+                            ${book.borrowed 
+                                ? `<button onclick="returnBook(${index})">Return</button>`
+                                : `<button onclick="borrowBook(${index})">Borrow</button>`}
                         </td>
                     </tr>
                 `;
